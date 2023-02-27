@@ -16,7 +16,7 @@ def check_correct_data(data):
     # Если длина пакета отлична от 2
     # или один из элементов пакета имеет пустое значение -
     # функция вернет False, иначе - True.
-    if len(data) != 2 or data[0] == None or data[1] == None:
+    if (len(data) != 2) or (None in data):
         return False
     else:
         return True
@@ -29,21 +29,19 @@ def check_correct_time(time):
     # меньше или равно самому большому значению ключа в словаре,
     # функция вернет False.
     # Иначе - True
-    if len(storage_data) > 0:
-        if time <= max(storage_data.keys()):
-            return False
-    else:
-        return True
+    if storage_data and time <= max(storage_data):
+        return False
+    return True
 
 def get_step_day(steps):
     """Получить количество пройденных шагов за этот день."""
     # Посчитайте все шаги, записанные в словарь storage_data,
     # прибавьте к ним значение из последнего пакета
     # и верните  эту сумму.
-    sum = 0
+    sum = steps
     for step in storage_data.values():
         sum += step
-    return sum + steps
+    return sum
 
 
 
@@ -62,10 +60,12 @@ def get_spent_calories(dist, current_time):
     # Для расчётов вам потребуется значение времени;
     # получите его из объекта current_time;
     # переведите часы и минуты в часы, в значение типа float.
-    #
-    #spent_calories = (0.035 * WEIGHT + (mean_speed ** 2 / HEIGHT) * 0.029 * WEIGHT) * minutes
+    hours = current_time.hour + current_time.minute / 60
+    mean_speed = dist / hours
+    minutes = hours * 60
+    spent_calories = (K_1 * WEIGHT + (mean_speed ** 2 / HEIGHT) * K_2 * WEIGHT) * minutes
 
-    return
+    return spent_calories
 
 
 def get_achievement(dist):
@@ -89,8 +89,8 @@ def show_message(time, steps, dist, calories, achivements):
     print(f'''
         Время:{time}.
         Количество шагов за сегодня: {steps}.
-        Дистанция составила {dist}.
-        Вы сожгли {calories} ккал.
+        Дистанция составила {dist:.2f}.
+        Вы сожгли {calories:.2f} ккал.
         {achivements}.
         ''')
 
@@ -99,24 +99,25 @@ def show_message(time, steps, dist, calories, achivements):
 def accept_package(data):
     """Обработать пакет данных."""
 
-    times, steps = data
+    if check_correct_data(data) == False:
+        #Если функция проверки пакета вернет False
+        return 'Некорректный пакет'
 
-    if check_correct_data(data) == False:  # Если функция проверки пакета вернет False
-        print('Некорректный пакет')
-    else:
-        pack_time = dt.datetime.strptime(times, FORMAT)
-        pack_time = pack_time.time()
-        print(pack_time)
-        if check_correct_time(pack_time) == False: #Если функция проверки значения времени вернет False
-            return 'Некорректное значение времени'
-        else:
-            day_steps = get_step_day(steps) #Запишите результат подсчёта пройденных шагов.
-            dist = get_distance(steps) #Запишите результат расчёта пройденной дистанции.
-            spent_calories = get_spent_calories(dist, times) # Запишите результат расчёта сожжённых калорий.
-            achievement = get_achievement(dist) #Запишите выбранное мотивирующее сообщение.
-            show_message(times, day_steps, dist, spent_calories, achievement)
-            storage_data[times] = day_steps
-            return storage_data
+    times, steps = data
+    pack_time = dt.datetime.strptime(times, FORMAT)
+    pack_time = pack_time.time()
+
+    if check_correct_time(pack_time) == False:
+        #Если функция проверки значения времени вернет False
+        return 'Некорректное значение времени'
+
+    day_steps = get_step_day(steps) #Запишите результат подсчёта пройденных шагов.
+    dist = get_distance(day_steps) #Запишите результат расчёта пройденной дистанции.
+    spent_calories = get_spent_calories(dist, pack_time) # Запишите результат расчёта сожжённых калорий.
+    achievement = get_achievement(dist) #Запишите выбранное мотивирующее сообщение.
+    show_message(pack_time, day_steps, dist, spent_calories, achievement)
+    storage_data[pack_time] = steps
+    return storage_data
 
 
 # Данные для самопроверки.Не удаляйте их.
@@ -132,6 +133,5 @@ accept_package(package_2)
 accept_package(package_3)
 accept_package(package_4)
 
-print(storage_data)
 
 
